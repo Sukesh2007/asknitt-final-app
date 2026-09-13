@@ -1,5 +1,8 @@
 package com.example.final_nitt.mainscreen.myDoubtScreen
 
+import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,12 +49,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.final_nitt.AppContainer
 import com.example.final_nitt.Preference
 import com.example.final_nitt.mainscreen.Answer
 import com.example.final_nitt.mainscreen.QuestionPass
-import com.example.final_nitt.network.QuestionPost
 import kotlinx.coroutines.flow.collectLatest
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Row
+import androidx.core.net.toUri
 
+@SuppressLint("Recycle")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DoubtScreen(padding: PaddingValues, navController: NavHostController){
@@ -59,11 +69,60 @@ fun DoubtScreen(padding: PaddingValues, navController: NavHostController){
     val preference = remember {
         Preference(context.applicationContext)
     }
+    val appContainer = AppContainer(context.applicationContext)
     val viewModel: DoubtViewModel = viewModel(
-        factory = DoubtViewModelFactory(preference)
+        factory = DoubtViewModelFactory(preference, repository = appContainer.questionRepository)
     )
     val state = viewModel.state.collectAsState()
     val listState = rememberLazyListState()
+    val filePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+
+        uri ?: return@rememberLauncherForActivityResult
+
+        val fileName = context.contentResolver.query(
+            uri,
+            arrayOf(OpenableColumns.DISPLAY_NAME),
+            null,
+            null,
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                cursor.getString(
+                    cursor.getColumnIndexOrThrow(
+                        OpenableColumns.DISPLAY_NAME
+                    )
+                )
+            } else {
+                "Unknown file"
+            }
+        } ?: "Unknown file"
+
+        val fileSize = context.contentResolver
+            .openAssetFileDescriptor(uri, "r")
+            ?.length ?: 0L
+
+        val fileBytes = context.contentResolver
+            .openInputStream(uri)
+            ?.use { it.readBytes() }
+
+        val contentType = context.contentResolver.getType(uri)
+            ?: "application/octet-stream"
+
+        println("Selected file: $fileName")
+        println("Content type: $contentType")
+
+        viewModel.onEvent(
+            DoubtEvent.OnFileSelected(
+                uri = uri.toString(),
+                fileName = fileName,
+                fileSize = fileSize,
+                fileBytes = fileBytes ?: ByteArray(0),
+                contentType = contentType
+            )
+        )
+    }
 
     if(state.value.showBottomSheet){
 
@@ -123,6 +182,60 @@ fun DoubtScreen(padding: PaddingValues, navController: NavHostController){
                     )
 
                     Button(
+                        onClick = {
+                            filePicker.launch(
+                                arrayOf(
+                                    "application/pdf",
+                                    "image/jpeg",
+                                    "image/png",
+                                    "image/webp"
+                                )
+                            )
+                        },
+                        enabled = !state.value.isPostingQuestion,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                    ) {
+                        Text("📎 Attach Document")
+                    }
+
+                    if (state.value.selectedFileUri != null) {
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+
+                                Text(
+                                    text = "📄 ${state.value.selectedFileName}",
+                                    fontWeight = FontWeight.Medium
+                                )
+
+                                Text(
+                                    text = "${state.value.selectedFileSize?.div(1024) ?: 0} KB",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    viewModel.onEvent(DoubtEvent.RemoveFile)
+                                }
+                            ) {
+                                Text("Remove")
+                            }
+                        }
+                    }
+
+                    Button(
                         onClick = {viewModel.onEvent(DoubtEvent.SendQuestion)},
                         enabled = !state.value.isPostingQuestion,
                         modifier = Modifier
@@ -168,8 +281,9 @@ fun DoubtScreen(padding: PaddingValues, navController: NavHostController){
                     Toast.makeText(context, it.message, Toast.LENGTH_LONG).show()
                 }
             }
+            }
         }
-    }
+
     Column(modifier = Modifier.padding(padding).fillMaxSize().padding(3.dp)){
         TextField(
             value = state.value.search,
@@ -199,11 +313,11 @@ fun DoubtScreen(padding: PaddingValues, navController: NavHostController){
                         }
                     }
                     val press: () -> Unit = {
-                        val question = QuestionPass(id = item.id, questionNo = index+1, description = item.question, created_at = item.createdAt, tags = p, isSolved = item.isSolved)
+                        val question = QuestionPass(id = item.id, questionNo = index+1, description = item.question, created_at = item.createdAt, tags = p, isSolved = item.isSolved, attachment = item.attachments)
                         navController.currentBackStackEntry?.savedStateHandle?.set("question", question)
                         navController.navigate(Answer.route)
                     }
-                    CardQuestion(index + 1, item.createdAt, item.question, p, 10, item.isSolved, taken, press)
+                    CardQuestion(index + 1, item.createdAt, item.question, p, 10, item.isSolved, taken, press, item.attachments)
                 }
 
             }
@@ -236,6 +350,4 @@ fun DoubtScreen(padding: PaddingValues, navController: NavHostController){
             }
         }
     }
-
-
 }

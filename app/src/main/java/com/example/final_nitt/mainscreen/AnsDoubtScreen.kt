@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.final_nitt.mainscreen.answer.AnswerScreen
 import com.example.final_nitt.mainscreen.myDoubtScreen.DoubtScreen
 import android.os.Parcelable
+import com.example.final_nitt.network.Attachment
 import kotlinx.parcelize.Parcelize
 
 @Composable
@@ -58,5 +59,6 @@ data class QuestionPass(
     val description: String,
     val created_at: String,
     val tags: String,
-    val isSolved: Boolean
+    val isSolved: Boolean,
+    val attachment: List<Attachment>
 ) : Parcelable

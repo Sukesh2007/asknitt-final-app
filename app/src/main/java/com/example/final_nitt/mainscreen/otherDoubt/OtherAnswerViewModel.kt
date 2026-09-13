@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.final_nitt.Preference
+import com.example.final_nitt.mainscreen.answer.AnswerEffect
+import com.example.final_nitt.mainscreen.answer.AnswerStateEvent
 import com.example.final_nitt.mainscreen.otherDoubt.OtherAnswerEffect.ScrollToBottom
 import com.example.final_nitt.mainscreen.otherDoubt.OtherAnswerEffect.ShowSnackbar
 import com.example.final_nitt.network.AnswersForQidItem
+import com.example.final_nitt.network.AttachmentAccessResult
 import com.example.final_nitt.network.GetAnswerResult
 import com.example.final_nitt.network.Network
 import com.example.final_nitt.network.Network.getAnswer
@@ -146,6 +149,36 @@ class OtherAnswerViewModel(private val preference: Preference, val qid: Int) : V
                     }
                 }
             }
+            is  OtherAnswerEvent.OpenAttachment -> {
+                viewModelScope.launch(Dispatchers.IO) {
+
+                    val token = preference.getToken()
+
+                    val response = Network.getAttachment(
+                        token ?: "",
+                        event.attachmentId
+                    )
+
+                    when (response) {
+
+                        is AttachmentAccessResult.Success -> {
+                            _shared.emit(
+                                OtherAnswerEffect.OpenFile(
+                                    response.success.url
+                                )
+                            )
+                        }
+
+                        is AttachmentAccessResult.Error -> {
+                            _shared.emit(
+                                ShowSnackbar(
+                                    response.message ?: "Failed to open file"
+                                )
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
     fun onEvent2(event: OtherAnswerEffect){
@@ -173,9 +206,11 @@ sealed class OtherAnswerEvent{
     data class CastVote(val answerId: Int, val voteDir: Int): OtherAnswerEvent()
     data class OnAnswerChanged(val text: String) : OtherAnswerEvent()
     data class CountVotes(val aid: Int): OtherAnswerEvent()
+    data class OpenAttachment(val attachmentId: Int) : OtherAnswerEvent()
 }
 
 sealed class OtherAnswerEffect{
     data class ShowSnackbar(val message: String): OtherAnswerEffect()
     data object ScrollToBottom: OtherAnswerEffect()
+    data class OpenFile(val url: String) : OtherAnswerEffect()
 }

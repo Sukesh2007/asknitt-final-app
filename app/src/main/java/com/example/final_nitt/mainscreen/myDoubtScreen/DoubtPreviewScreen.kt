@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,10 +26,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.final_nitt.network.Attachment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CardQuestion(num: Int = 1, time: String = "2:02", question: String = "How are you", tags: String = "inform next", answers: Int = 10, isSolved : Boolean = false, taken: (String) -> Unit, press: () -> Unit){
+fun CardQuestion(
+    num: Int = 1,
+    time: String = "2:02",
+    question: String = "How are you",
+    tags: String = "inform next",
+    answers: Int = 10,
+    isSolved: Boolean = false,
+    taken: (String) -> Unit,
+    press: () -> Unit,
+    fileName: List<Attachment>
+){
     var expanded by remember { mutableStateOf(false) }
     val status = if (isSolved) "Solved" else "Not Solved"
     Card(colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -69,6 +79,12 @@ fun CardQuestion(num: Int = 1, time: String = "2:02", question: String = "How ar
                 Text(
                     text = tags,
                     fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Text(
+                    text = "📎 Attached file : $fileName",
+                    fontSize =  12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
 

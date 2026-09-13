@@ -76,7 +76,7 @@ fun DiscoverScreen(
 
 @Composable
 fun DiscoverUserCard(
-    user: DiscoverUser,
+    user: DiscoverUser?,
     requestLoading: Boolean,
     onFollowClick: () -> Unit,
     onCancelRequestClick: () -> Unit
@@ -103,7 +103,7 @@ fun DiscoverUserCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = user.name.first().uppercase(),
+                        text = user?.name?.first()?.uppercase() ?: "",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -114,24 +114,24 @@ fun DiscoverUserCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = user.name,
+                    text = user?.name ?: "",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = user.rollno,
+                    text = user?.rollno ?: "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = user.department,
+                    text = user?.department ?: "",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
             Spacer(Modifier.width(8.dp))
-            if (user.followStatus == "pending") {
+            if (user?.followStatus == "pending") {
                 OutlinedButton(
                     enabled = !requestLoading,
                     onClick = onCancelRequestClick

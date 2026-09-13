@@ -30,5 +30,10 @@ data class AnswersState(
 sealed class AnswerStateEvent{
     data class Refresh(val qid: Int): AnswerStateEvent()
     data class GetVotes(val aid: Int): AnswerStateEvent()
+    data class OpenAttachment(val attachmentId: Int) : AnswerStateEvent()
+}
 
+sealed class AnswerEffect {
+    data class OpenFile(val url: String) : AnswerEffect()
+    data class ShowMessage(val message: String) : AnswerEffect()
 }

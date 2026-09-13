@@ -127,3 +127,14 @@ sealed interface GetDiscoverUsersResult {
         val error: String
     ) : GetDiscoverUsersResult
 }
+
+sealed class AttachmentAccessResult {
+
+    data class Success(
+        val success: AttachmentAccessResponse
+    ) : AttachmentAccessResult()
+
+    data class Error(
+        val message: String?
+    ) : AttachmentAccessResult()
+}

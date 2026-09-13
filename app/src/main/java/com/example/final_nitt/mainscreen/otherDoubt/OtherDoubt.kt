@@ -64,7 +64,7 @@ fun OtherDoubt(padding: PaddingValues, navController: NavController){
                             "$acc $curr"
                         }
                         QuestionCard(title = "Question ${index+1}", item.question, item.tags, item.createdAt) {
-                            val question = QuestionPass(id = item.id, questionNo = index+1, description = item.question, created_at = item.createdAt, tags = p, isSolved = item.isSolved)
+                            val question = QuestionPass(id = item.id, questionNo = index+1, description = item.question, created_at = item.createdAt, tags = p, isSolved = item.isSolved, attachment = item.attachments)
                             navController.currentBackStackEntry?.savedStateHandle?.set("question", question)
                             navController.navigate(OtherAnswerScreen.route)
                         }

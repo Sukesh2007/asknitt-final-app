@@ -11,6 +11,8 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.delete
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -19,20 +21,20 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.HttpMethod
 import io.ktor.http.URLProtocol
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.http.path
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 object Network {
+    private val baseUrl = "https://asknitt-backend-final.onrender.com"
     private val client: HttpClient = HttpClient {
         expectSuccess = true
         install(ContentNegotiation) {
@@ -51,9 +53,8 @@ object Network {
 
         install(DefaultRequest) {
             url {
-                protocol = URLProtocol.HTTP
-                host = "10.0.2.2"
-                port = 8000
+                protocol = URLProtocol.HTTPS
+                host = "asknitt-backend-final.onrender.com"
             }
         }
 
@@ -466,6 +467,100 @@ object Network {
                 e.message ?: "Unknown Error"
             )
 
+        }
+    }
+
+    suspend fun uploadAttachment(
+        questionId: Int,
+        fileBytes: ByteArray,
+        fileName: String,
+        contentType: String,
+        token: String
+    ): Result<Attachment> {
+
+        return try {
+
+
+            val response = client.submitFormWithBinaryData(
+                url = "$baseUrl/attachments/questions/$questionId",
+                formData = formData {
+
+                    append(
+                        key = "file",
+                        value = fileBytes,
+                        headers = Headers.build {
+                            append(
+                                HttpHeaders.ContentDisposition,
+                                "filename=\"$fileName\""
+                            )
+                            append(
+                                HttpHeaders.ContentType,
+                                contentType
+                            )
+                        }
+                    )
+                }
+            ) {
+                method = HttpMethod.Post
+
+                header(
+                    HttpHeaders.Authorization,
+                    "Bearer $token"
+                )
+            }
+
+            if (response.status.isSuccess()) {
+                Result.success(
+                    response.body<Attachment>()
+                )
+            } else {
+                Result.failure(
+                    Exception(
+                        "Upload failed: ${response.status}"
+                    )
+                )
+            }
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getAttachment(
+        token: String,
+        attachmentId: Int
+    ): AttachmentAccessResult {
+
+        return try {
+
+            val response = client.get(
+                "$baseUrl/attachments/$attachmentId"
+            ) {
+                header(
+                    HttpHeaders.Authorization,
+                    "Bearer $token"
+                )
+            }
+
+            if (response.status.isSuccess()) {
+
+                AttachmentAccessResult.Success(
+                    response.body<AttachmentAccessResponse>()
+                )
+
+            } else {
+
+                AttachmentAccessResult.Error(
+                    response.bodyAsText()
+                )
+            }
+
+        } catch (e: Exception) {
+
+            AttachmentAccessResult.Error(
+                e.message
+            )
         }
     }
 }

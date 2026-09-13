@@ -1,5 +1,8 @@
 package com.example.final_nitt.mainscreen.answer
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -20,11 +23,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.final_nitt.Preference
 import com.example.final_nitt.mainscreen.Question
 import com.example.final_nitt.mainscreen.QuestionPass
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +49,40 @@ fun AnswerScreen(padding: PaddingValues, navController: NavHostController){
     LaunchedEffect(state.value.answers) {
         state.value.answers.forEach {
             viewModel.onEvent(AnswerStateEvent.GetVotes(it.id))
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.shared.collectLatest {
+
+            when (it) {
+
+                is AnswerEffect.OpenFile -> {
+
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        it.url.toUri()
+                    )
+
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: ActivityNotFoundException) {
+                        Toast.makeText(
+                            context,
+                            "No PDF viewer found",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+
+                is AnswerEffect.ShowMessage -> {
+                    Toast.makeText(
+                        context,
+                        it.message,
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
         }
     }
     Scaffold(
@@ -79,7 +118,15 @@ fun AnswerScreen(padding: PaddingValues, navController: NavHostController){
         containerColor = Color.White,
     ){padding->
         LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()){
-            stickyHeader { QuestionHeader(question.questionNo, question.created_at, question.description, question.tags, 0, question.isSolved) }
+            stickyHeader {
+                QuestionHeader(question.questionNo, question.created_at, question.description, question.tags, 0, question.isSolved, question.attachment){file ->
+                    viewModel.onEvent(
+                        AnswerStateEvent.OpenAttachment(
+                            attachmentId = file.id
+                        )
+                    )
+                }
+            }
             itemsIndexed(state.value.answers) {index, item->
                 AnswerCard(item.owner.name, item.createdAt, item.answer,state.value.mapped[item.id] ?: 0, (state.value.mapped[item.id] ?: 0) > 0)
             }

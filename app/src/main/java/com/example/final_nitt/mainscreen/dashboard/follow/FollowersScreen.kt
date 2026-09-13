@@ -48,43 +48,28 @@ fun FollowersScreen(
 
     val context = LocalContext.current
     val preference = Preference(context)
-
     val viewModel: FollowersViewModel = viewModel(
         factory = FollowersViewModelFactory(preference)
     )
-
     val state = viewModel.state.collectAsState()
-
     val snackbarHostState = remember {
         SnackbarHostState()
     }
-
     LaunchedEffect(Unit) {
-
         viewModel.shared.collectLatest { event ->
-
             when (event) {
-
                 is FollowersEffect.ShowSnackbar -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
-
             }
-
         }
-
     }
-
     Scaffold(
-
         modifier = Modifier.padding(padding),
-
         snackbarHost = {
             SnackbarHost(snackbarHostState)
         },
-
         topBar = {
-
             TopAppBar(
                 title = {
                     Text(
@@ -92,92 +77,64 @@ fun FollowersScreen(
                     )
                 }
             )
-
         }
-
     ) { innerPadding ->
-
         if (state.value.isLoading) {
-
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-
                 CircularProgressIndicator()
-
             }
-
         } else {
-
             LazyColumn(
-
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
-
                 contentPadding = PaddingValues(vertical = 8.dp)
-
             ) {
-
                 items(state.value.users) {user->
-
                     ElevatedCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                         elevation = CardDefaults.elevatedCardElevation(3.dp)
                     ) {
-
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-
                             Icon(
                                 imageVector = Icons.Default.AccountCircle,
                                 contentDescription = null,
                                 modifier = Modifier.size(56.dp)
                             )
-
                             Spacer(modifier = Modifier.width(16.dp))
-
                             Column {
-
                                 Text(
                                     text = user.name,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
-
                                 Text(
                                     text = user.rollno,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color.Gray
                                 )
-
                                 Text(
                                     text = user.department,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.Gray
                                 )
-
                             }
-
                         }
-
                     }
-
                 }
-
                 }
-
             }
-
         }
-
     }

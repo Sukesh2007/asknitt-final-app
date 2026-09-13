@@ -1,5 +1,8 @@
 package com.example.final_nitt.mainscreen.otherDoubt
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,10 +44,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.final_nitt.Preference
 import com.example.final_nitt.mainscreen.QuestionPass
+import com.example.final_nitt.mainscreen.answer.AnswerStateEvent
 import com.example.final_nitt.mainscreen.answer.QuestionHeader
 import com.example.final_nitt.network.AnswersForQidItem
 import kotlinx.coroutines.flow.collectLatest
@@ -71,6 +76,7 @@ fun AnswerScreen(
             viewModel.onEvent(OtherAnswerEvent.CountVotes(item.id))
         }
     }
+    val context = LocalContext.current
     val listState = rememberLazyListState()
     val snackBarHost = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
@@ -83,6 +89,23 @@ fun AnswerScreen(
                 }
                 is OtherAnswerEffect.ShowSnackbar -> {
                     snackBarHost.showSnackbar(event.message)
+                }
+
+                is OtherAnswerEffect.OpenFile -> {
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        event.url.toUri()
+                    )
+
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: ActivityNotFoundException) {
+                        Toast.makeText(
+                            context,
+                            "No PDF viewer found",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
             }
         }
@@ -157,8 +180,15 @@ fun AnswerScreen(
                         question = question?.description ?: "",
                         tags = question?.tags ?: "",
                         answerCount = 10,
-                        isSolved = if(question?.isSolved == null) false else question.isSolved
-                    )
+                        isSolved = if(question?.isSolved == null) false else question.isSolved,
+                        attachment = question?.attachment ?: emptyList()
+                    ){file->
+                        viewModel.onEvent(
+                            OtherAnswerEvent.OpenAttachment(
+                                attachmentId = file.id
+                            )
+                        )
+                    }
                 }
 
                 itemsIndexed(state.value.answers){index, item->
